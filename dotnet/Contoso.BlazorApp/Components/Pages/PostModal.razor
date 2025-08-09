@@ -1,0 +1,111 @@
+@using Contoso.BlazorApp.Models
+@using Contoso.BlazorApp.Services
+@inject IApiService ApiService
+
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black font-sans">
+    <div class="bg-white rounded-20 shadow-lg w-full max-w-538 px-32 pt-32 pb-24 relative flex flex-col min-h-400">
+        <button class="top-32 right-32 w-40 h-40 flex items-center justify-center text-00b7ff text-32 font-bold rounded-10 hover:bg-ccf1ff focus:bg-ccf1ff focus:outline-none transition-colors"
+                aria-label="Close modal"
+                @onclick="CloseModal"
+                tabindex="0">
+            &times;
+        </button>
+        
+        <h2 class="text-36 font-normal mb-28 text-black text-left leading-12">How do you feel today?</h2>
+        
+        <EditForm Model="@createPostRequest" OnValidSubmit="@HandleSubmit" class="flex flex-col flex-1">
+            <div class="flex flex-col gap-20 mb-20">
+                <InputText @bind-Value="createPostRequest.Username"
+                          class="border-none bg-d9d9d9 rounded-10 px-24 py-16 text-24 text-222 focus:outline-none focus:ring-2 focus:ring-00b7ff placeholder:text-878787 placeholder:font-normal w-full"
+                          placeholder="Your name"
+                          required
+                          disabled="@loading" />
+                
+                <InputTextArea @bind-Value="createPostRequest.Content"
+                              class="border-none bg-d9d9d9 rounded-10 px-24 py-16 text-24 text-222 focus:outline-none focus:ring-2 focus:ring-00b7ff resize-none placeholder:text-878787 placeholder:font-normal w-full min-h-120"
+                              placeholder="What's on your mind?"
+                              rows="4"
+                              required
+                              disabled="@loading" />
+            </div>
+            
+            @if (!string.IsNullOrEmpty(error))
+            {
+                <div class="text-red-500 text-16 mb-20 text-center">
+                    @error
+                </div>
+            }
+            
+            <div class="flex gap-16 mt-auto">
+                <button type="submit"
+                        class="bg-00b7ff text-white px-32 py-12 rounded-10 font-semibold shadow hover:bg-0099cc transition flex-1 text-20 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled="@loading">
+                    @(loading ? "Posting..." : "Submit")
+                </button>
+                <button type="button"
+                        class="bg-ccf1ff text-00b7ff px-32 py-12 rounded-10 font-semibold flex-1 text-20 hover:bg-b3e6ff transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        @onclick="CloseModal"
+                        disabled="@loading">
+                    Cancel
+                </button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback OnRefresh { get; set; }
+
+    private CreatePostRequest createPostRequest = new();
+    private bool loading = false;
+    private string error = "";
+
+    private async Task HandleSubmit()
+    {
+        loading = true;
+        error = "";
+        
+        if (string.IsNullOrWhiteSpace(createPostRequest.Username) || string.IsNullOrWhiteSpace(createPostRequest.Content))
+        {
+            error = "Username and content are required.";
+            loading = false;
+            return;
+        }
+
+        try
+        {
+            var result = await ApiService.CreatePostAsync(createPostRequest);
+            
+            if (result != null)
+            {
+                // Clear form and close modal
+                createPostRequest = new();
+                await OnClose.InvokeAsync();
+                
+                // Refresh posts list if callback provided
+                if (OnRefresh.HasDelegate)
+                {
+                    await OnRefresh.InvokeAsync();
+                }
+            }
+            else
+            {
+                error = "Failed to create post. Please try again.";
+            }
+        }
+        catch
+        {
+            error = "Failed to create post. Please try again.";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task CloseModal()
+    {
+        await OnClose.InvokeAsync();
+    }
+}

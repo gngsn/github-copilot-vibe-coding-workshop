@@ -1,0 +1,59 @@
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black font-sans">
+    <div class="bg-white rounded-20 shadow-lg w-full max-w-538 px-32 pt-32 pb-24 relative flex flex-col min-h-400">
+        <button class="top-32 right-32 w-40 h-40 flex items-center justify-center text-00b7ff text-32 font-bold rounded-10 hover:bg-ccf1ff focus:bg-ccf1ff focus:outline-none transition-colors"
+                aria-label="Close modal"
+                @onclick="CloseModal"
+                tabindex="0">
+            &times;
+        </button>
+        
+        <h2 class="text-36 font-normal mb-28 text-black text-left leading-12">Enter Your Name</h2>
+        
+        <EditForm Model="@nameInput" OnValidSubmit="@HandleSubmit" class="flex flex-col flex-1">
+            <div class="flex flex-col gap-20 mb-20">
+                <InputText @bind-Value="nameInput.Name"
+                          class="border-none bg-d9d9d9 rounded-10 px-24 py-16 text-24 text-222 focus:outline-none focus:ring-2 focus:ring-00b7ff placeholder:text-878787 placeholder:font-normal w-full"
+                          placeholder="Your name"
+                          required />
+            </div>
+            
+            <div class="flex gap-16 mt-auto">
+                <button type="submit"
+                        class="bg-00b7ff text-white px-32 py-12 rounded-10 font-semibold shadow hover:bg-0099cc transition flex-1 text-20">
+                    Submit
+                </button>
+                <button type="button"
+                        class="bg-ccf1ff text-00b7ff px-32 py-12 rounded-10 font-semibold flex-1 text-20 hover:bg-b3e6ff transition"
+                        @onclick="CloseModal">
+                    Cancel
+                </button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback OnSubmit { get; set; }
+
+    private NameInputModel nameInput = new();
+
+    private async Task HandleSubmit()
+    {
+        if (OnSubmit.HasDelegate)
+        {
+            await OnSubmit.InvokeAsync();
+        }
+        await CloseModal();
+    }
+
+    private async Task CloseModal()
+    {
+        await OnClose.InvokeAsync();
+    }
+
+    public class NameInputModel
+    {
+        public string Name { get; set; } = "";
+    }
+}

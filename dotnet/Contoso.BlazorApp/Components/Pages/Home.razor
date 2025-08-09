@@ -1,0 +1,159 @@
+﻿@page "/"
+@using Contoso.BlazorApp.Models
+@using Contoso.BlazorApp.Services
+@inject IApiService ApiService
+@rendermode InteractiveServer
+
+<PageTitle>Community - Simple Social Media Application</PageTitle>
+
+<div class="min-h-screen w-full flex flex-row bg-f5f6fa font-sans">
+    <!-- Sidebar Navigation - Figma fidelity -->
+    <aside class="h-screen w-110 bg-e5a000 flex flex-col items-center justify-between py-10 rounded-r-20 shadow-lg" aria-label="Sidebar">
+        <div class="flex flex-col items-center gap-12 mt-4">
+            <img src="/icons/icon-home.svg" alt="Home" class="w-58 h-51 tabindex-0" tabindex="0" aria-label="Home" />
+            <img src="/icons/icon-magnifying-glass.svg" alt="Search" class="w-58 h-58 cursor-pointer tabindex-0" tabindex="0" aria-label="Search" @onclick="ShowSearchModal" />
+            <img src="/icons/icon-person.svg" alt="Profile" class="w-58 h-58 cursor-pointer tabindex-0" tabindex="0" aria-label="Profile" @onclick="ShowNameModal" />
+            <img src="/icons/icon-x-letter.svg" alt="Close" class="w-58 h-58 tabindex-0" tabindex="0" aria-label="Close" />
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col items-center justify-start gap-8">
+        <!-- Header - Figma fidelity -->
+        <header class="w-full max-w-1280 flex items-center justify-between py-6 px-10 bg-e5a000 rounded-b-20 mb-8 shadow-lg" aria-label="App header">
+            <div class="flex items-center gap-4">
+                <img src="https://ui-avatars.com/api/?name=Community&background=E5A000&color=fff&size=58" alt="Community" class="rounded-full w-58 h-58" />
+                <div>
+                    <h1 class="text-32 font-bold text-222 leading-tight">Community</h1>
+                    <p class="text-20 text-878787 leading-tight mb-4">Simple Social Media Application</p>
+                </div>
+            </div>
+            <button class="flex items-center gap-2 bg-00b7ff text-white px-8 py-2 rounded-10 font-semibold shadow-lg hover:bg-0099cc transition text-20 focus:outline-none mb-6" 
+                    aria-label="New Post" tabindex="0" @onclick="ShowPostModal">
+                <img src="/icons/icon-plus.svg" alt="New Post" class="w-24 h-24" />
+                New Post
+            </button>
+        </header>
+
+        <!-- API error indication -->
+        @if (apiError)
+        {
+            <div class="bg-red-100 text-red-700 p-4 mt-4 rounded-10 w-full max-w-1280 text-center text-20">
+                Backend API is unavailable or unreachable.
+            </div>
+        }
+
+        <!-- Posts List -->
+        <main class="w-full max-w-1280 px-10 flex flex-col items-center justify-start gap-8">
+            @if (loading && !apiError)
+            {
+                <div class="mt-4 text-center text-878787 text-24">Loading posts...</div>
+            }
+            else if (!loading && !apiError)
+            {
+                <div class="mt-4 flex flex-col gap-8 items-center justify-start">
+                    @if (posts.Count == 0)
+                    {
+                        <div class="text-center text-878787 text-24">No posts found.</div>
+                    }
+                    else
+                    {
+                        @foreach (var post in posts)
+                        {
+                            <div class="rounded-20 shadow-lg px-8 pt-8 pb-6 flex flex-col gap-6 border border-e5a000 bg-e5a000 w-full max-w-760 mx-auto">
+                                <div class="flex items-center gap-6">
+                                    <img src="@($"https://ui-avatars.com/api/?name={post.Username}&background=E5A000&color=fff&size=100")" alt="@post.Username" class="rounded-full w-100 h-100" />
+                                    <span class="font-bold text-222 text-32 leading-tight">@post.Username</span>
+                                    <span class="ml-auto text-xs text-878787">@post.CreatedAt.ToString("g")</span>
+                                </div>
+                                <div class="text-32 text-222 leading-tight mb-4">@post.Content</div>
+                                <div class="flex gap-8 mt-2">
+                                    <span class="flex items-center gap-2 text-878787 text-24">
+                                        <img src="/icons/icon-heart.svg" alt="Likes" class="w-58 h-44" />
+                                        @post.Likes
+                                    </span>
+                                    <span class="flex items-center gap-2 text-878787 text-24">
+                                        <img src="/icons/icon-comment-square.svg" alt="Comments" class="w-55 h-48" />
+                                        @post.Comments
+                                    </span>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            }
+        </main>
+
+        <!-- Modals -->
+        @if (showNameModal)
+        {
+            <NameInputModal OnClose="@(() => showNameModal = false)" OnSubmit="HandleNameSubmit" />
+        }
+        @if (showPostModal)
+        {
+            <PostModal OnClose="@(() => showPostModal = false)" OnRefresh="HandlePostRefresh" />
+        }
+        @if (showSearchModal)
+        {
+            <SearchModal OnClose="@(() => showSearchModal = false)" />
+        }
+    </div>
+</div>
+
+@code {
+    private List<Post> posts = new();
+    private bool apiError = false;
+    private bool loading = true;
+    private bool showNameModal = false;
+    private bool showPostModal = false;
+    private bool showSearchModal = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await FetchPosts();
+    }
+
+    private async Task FetchPosts()
+    {
+        loading = true;
+        try
+        {
+            posts = await ApiService.GetPostsAsync();
+            apiError = false;
+        }
+        catch
+        {
+            apiError = true;
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void ShowNameModal()
+    {
+        showNameModal = true;
+    }
+
+    private void ShowPostModal()
+    {
+        showPostModal = true;
+    }
+
+    private void ShowSearchModal()
+    {
+        showSearchModal = true;
+    }
+
+    private void HandleNameSubmit()
+    {
+        // Handle username logic here if needed
+        showNameModal = false;
+    }
+
+    private async Task HandlePostRefresh()
+    {
+        await FetchPosts();
+    }
+}

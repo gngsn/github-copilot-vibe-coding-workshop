@@ -1,0 +1,92 @@
+@using Contoso.BlazorApp.Models
+@using Contoso.BlazorApp.Services
+@inject IApiService ApiService
+
+<div class="min-h-screen bg-f5f6fa flex flex-col items-center justify-start font-sans">
+    <div class="w-full max-w-1280 mt-8 flex flex-col items-center justify-start gap-8">
+        <EditForm Model="@searchModel" OnValidSubmit="@HandleSearch" class="flex gap-6 mb-8 w-full max-w-760">
+            <InputText @bind-Value="searchModel.Query"
+                      class="flex-1 border border-d9d9d9 rounded-10 px-6 py-4 text-24 font-normal focus:outline-none focus:ring-2 focus:ring-00b7ff bg-f5f6fa text-222 placeholder:text-878787 placeholder:font-normal"
+                      placeholder="Enter keywords to search..." />
+            <button type="submit"
+                    class="bg-00b7ff text-white px-10 py-3 rounded-10 font-semibold shadow-lg hover:bg-0099cc transition text-20 focus:outline-none"
+                    disabled="@loading">
+                @(loading ? "Searching..." : "Search")
+            </button>
+        </EditForm>
+
+        @if (!string.IsNullOrEmpty(error))
+        {
+            <div class="bg-red-100 text-red-700 p-2 rounded mb-4 text-center w-full max-w-760 text-20 font-normal">@error</div>
+        }
+
+        <div class="flex flex-col gap-8 w-full max-w-760 mx-auto">
+            @if (results.Count == 0 && !loading && hasSearched)
+            {
+                <div class="text-center text-878787 text-24 font-normal">No results found.</div>
+            }
+            else
+            {
+                @foreach (var post in results)
+                {
+                    <div class="bg-white rounded-20 shadow-lg px-8 pt-8 pb-6 flex flex-col gap-6 border border-e5a000 w-full">
+                        <div class="flex items-center gap-6">
+                            <img src="@($"https://ui-avatars.com/api/?name={post.Username}&background=E5A000&color=fff&size=100")" alt="@post.Username" class="rounded-full w-100 h-100" />
+                            <span class="font-bold text-222 text-32 leading-tight">@post.Username</span>
+                            <span class="ml-auto text-xs text-878787 font-normal">@post.CreatedAt.ToString("g")</span>
+                        </div>
+                        <div class="text-32 text-222 leading-tight font-normal text-left">@post.Content</div>
+                    </div>
+                }
+            }
+        </div>
+
+        <button class="mt-8 bg-ccf1ff text-00b7ff px-32 py-12 rounded-10 font-semibold text-20 hover:bg-b3e6ff transition"
+                @onclick="CloseModal">
+            Close
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private SearchModel searchModel = new();
+    private List<Post> results = new();
+    private bool loading = false;
+    private string error = "";
+    private bool hasSearched = false;
+
+    private async Task HandleSearch()
+    {
+        loading = true;
+        error = "";
+        hasSearched = true;
+        
+        try
+        {
+            var allPosts = await ApiService.GetPostsAsync();
+            results = allPosts.Where(post => 
+                post.Content.Contains(searchModel.Query, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+        catch
+        {
+            error = "Failed to fetch posts.";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task CloseModal()
+    {
+        await OnClose.InvokeAsync();
+    }
+
+    public class SearchModel
+    {
+        public string Query { get; set; } = "";
+    }
+}
