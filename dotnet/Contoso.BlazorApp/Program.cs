@@ -8,9 +8,10 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 // Add HttpClient for API calls
+var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "http://localhost:8080/api";
 builder.Services.AddHttpClient("API", client =>
 {
-    client.BaseAddress = new Uri("http://localhost:8080/api/");
+    client.BaseAddress = new Uri(apiBaseUrl.EndsWith('/') ? apiBaseUrl : apiBaseUrl + "/");
 });
 
 // Register API service
