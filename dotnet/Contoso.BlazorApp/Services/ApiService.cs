@@ -50,7 +50,7 @@ public class ApiService : IApiService
             var json = JsonSerializer.Serialize(request, _jsonOptions);
             var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
             var response = await _httpClient.PostAsync("posts", content);
-            
+
             if (response.IsSuccessStatusCode)
             {
                 var responseContent = await response.Content.ReadAsStringAsync();
