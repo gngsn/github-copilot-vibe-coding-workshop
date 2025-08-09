@@ -69,6 +69,24 @@ def init_db():
     """
     )
     conn.commit()
+
+    # Insert mock posts if not present
+    cur.execute("SELECT COUNT(*) FROM posts")
+    count = cur.fetchone()[0]
+    if count == 0:
+        from datetime import datetime
+
+        now = datetime.utcnow().isoformat()
+        posts = [
+            ("1", "alice", "Hello world!", now, now),
+            ("2", "bob", "This is my first post.", now, now),
+            ("3", "carol", "Excited to join this community!", now, now),
+        ]
+        cur.executemany(
+            "INSERT INTO posts (id, username, content, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)",
+            posts,
+        )
+        conn.commit()
     conn.close()
 
 
